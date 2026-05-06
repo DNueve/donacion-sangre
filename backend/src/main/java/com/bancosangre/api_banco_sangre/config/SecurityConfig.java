@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -13,6 +14,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @RequiredArgsConstructor
+@EnableMethodSecurity  // ← habilita @PreAuthorize en los controllers
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
@@ -20,31 +22,50 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Desactivar CSRF (no lo necesitamos con JWT)
-                .csrf(AbstractHttpConfigurer::disable)
+            .csrf(AbstractHttpConfigurer::disable)
 
-                // Configurar qué rutas requieren autenticación
-                .authorizeHttpRequests(auth -> auth
-                        // Rutas públicas (cualquiera puede acceder)
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            .authorizeHttpRequests(auth -> auth
 
-                        // Todo lo demás requiere autenticación
-                        .anyRequest().authenticated()
-                )
+                // ── Preflight CORS ──────────────────────────────────────
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // No usar sesiones (somos stateless con JWT)
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                // ── Auth ────────────────────────────────────────────────
+                .requestMatchers("/api/v1/auth/**").permitAll()
 
-                // Agregar nuestro filtro JWT antes del filtro de Spring Security
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                // ── Bancos (consultas públicas) ─────────────────────────
+                .requestMatchers(HttpMethod.GET,
+                        "/api/bancos/activos",
+                        "/api/bancos/radio",
+                        "/api/bancos/ciudad/**",
+                        "/api/bancos/departamento/**",
+                        "/api/bancos/{id}"
+                ).permitAll()
+
+                // ── Solicitudes (urgencias públicas) ────────────────────
+                .requestMatchers(HttpMethod.GET,
+                        "/api/solicitudes/activas",
+                        "/api/solicitudes/ciudad/**",
+                        "/api/solicitudes/{id}"
+                ).permitAll()
+
+                // ── Inventario (stock público por banco) ─────────────────
+                .requestMatchers(HttpMethod.GET,
+                        "/api/inventario/banco/**"
+                ).permitAll()
+
+                // ── Todo lo demás requiere JWT ───────────────────────────
+                .anyRequest().authenticated()
+            )
+
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // Bean de BCrypt para inyectarlo donde lo necesitemos
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

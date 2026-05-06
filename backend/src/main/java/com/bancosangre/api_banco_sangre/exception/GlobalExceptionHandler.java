@@ -11,54 +11,62 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-// Captura excepciones lanzadas en cualquier controller
-// y devuelve respuestas JSON consistentes y bonitas
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // ─── Errores de validación de DTOs ───────────────────────────────
-    // Cuando un @Valid falla (ej: correo vacío, contraseña corta, etc.)
+    // ─── Validación de DTOs (@Valid) ─────────────────────────────────
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> manejarValidacion(MethodArgumentNotValidException ex) {
         Map<String, String> errores = new HashMap<>();
-
         ex.getBindingResult().getAllErrors().forEach(error -> {
             String campo = ((FieldError) error).getField();
-            String mensaje = error.getDefaultMessage();
-            errores.put(campo, mensaje);
+            errores.put(campo, error.getDefaultMessage());
         });
 
-        Map<String, Object> respuesta = new HashMap<>();
-        respuesta.put("timestamp", LocalDateTime.now());
-        respuesta.put("status", HttpStatus.BAD_REQUEST.value());
-        respuesta.put("error", "Error de validación");
-        respuesta.put("errores", errores);
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(respuesta);
+        return construir(HttpStatus.BAD_REQUEST, "Error de validación", null, errores);
     }
 
-    // ─── Errores de lógica de negocio ────────────────────────────────
-    // Captura los RuntimeException que lanzamos en el AuthServiceImpl
+    // ─── Recurso no encontrado → 404 ─────────────────────────────────
+    @ExceptionHandler(RecursoNoEncontradoException.class)
+    public ResponseEntity<Map<String, Object>> manejarNoEncontrado(RecursoNoEncontradoException ex) {
+        return construir(HttpStatus.NOT_FOUND, "Recurso no encontrado", ex.getMessage(), null);
+    }
+
+    // ─── Conflicto de negocio (NIT duplicado, etc.) → 409 ────────────
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> manejarConflicto(IllegalArgumentException ex) {
+        return construir(HttpStatus.CONFLICT, "Conflicto de datos", ex.getMessage(), null);
+    }
+
+    // ─── Acceso denegado → 403 ────────────────────────────────────────
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> manejarAccesoDenegado(Exception ex) {
+        return construir(HttpStatus.FORBIDDEN, "Acceso denegado", "No tienes permisos para esta operación", null);
+    }
+
+    // ─── Runtime genérico → 400 ───────────────────────────────────────
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> manejarRuntime(RuntimeException ex) {
-        Map<String, Object> respuesta = new HashMap<>();
-        respuesta.put("timestamp", LocalDateTime.now());
-        respuesta.put("status", HttpStatus.BAD_REQUEST.value());
-        respuesta.put("error", "Error de negocio");
-        respuesta.put("mensaje", ex.getMessage());
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(respuesta);
+        return construir(HttpStatus.BAD_REQUEST, "Error de negocio", ex.getMessage(), null);
     }
 
-    // ─── Cualquier otro error inesperado ─────────────────────────────
+    // ─── Error inesperado → 500 ───────────────────────────────────────
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> manejarExcepcionGeneral(Exception ex) {
-        Map<String, Object> respuesta = new HashMap<>();
-        respuesta.put("timestamp", LocalDateTime.now());
-        respuesta.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        respuesta.put("error", "Error interno del servidor");
-        respuesta.put("mensaje", ex.getMessage());
+    public ResponseEntity<Map<String, Object>> manejarGeneral(Exception ex) {
+        return construir(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", ex.getMessage(), null);
+    }
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(respuesta);
+    // ─── Helper para respuesta uniforme ──────────────────────────────
+    private ResponseEntity<Map<String, Object>> construir(
+            HttpStatus status, String error, String mensaje, Map<String, String> errores) {
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", status.value());
+        body.put("error", error);
+        if (mensaje != null) body.put("mensaje", mensaje);
+        if (errores != null) body.put("errores", errores);
+
+        return ResponseEntity.status(status).body(body);
     }
 }
