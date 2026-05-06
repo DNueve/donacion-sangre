@@ -1,16 +1,55 @@
-# React + Vite
+# 🩸 Donación de Sangre
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Sistema web que conecta donantes con bancos de sangre en tiempo real, usando matching automático por compatibilidad sanguínea y cercanía geográfica.
 
-Currently, two official plugins are available:
+## 🛠 Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Frontend:** React + Vite + Tailwind + Leaflet
+- **Backend:** Spring Boot 3 + Java 17
+- **Database:** PostgreSQL (Supabase)
 
-## React Compiler
+## 📁 Estructura
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```
+donacion-sangre/
+├── frontend/    → Aplicación React
+└── backend/     → API Spring Boot
+```
 
-## Expanding the ESLint configuration
+## 🚀 Cómo levantar el proyecto
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Corre en: `http://localhost:5173`
+
+### Backend
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+Corre en: `http://localhost:8081`
+
+## 🌐 Endpoints principales
+
+Base URL: `http://localhost:8081/api/v1`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/auth/login` | Login de usuario |
+| POST | `/auth/registro` | Registro de donante |
+| GET | `/usuarios/perfil` | Perfil del usuario logueado |
+| GET | `/bancos` | Listar bancos |
+| GET | `/solicitudes/activas` | Urgencias activas |
+| POST | `/solicitudes` | Crear urgencia (admin banco) |
+| POST | `/donaciones` | Registrar donación |
+
+Documentación completa: `http://localhost:8081/swagger-ui/index.html`
+
+## 👥 Equipo
+
+- **Carlos Díaz** — Backend (Spring Boot, BD, lógica de negocio)
+- **Diego Manco** — Frontend (React, UI/UX, integración)    
