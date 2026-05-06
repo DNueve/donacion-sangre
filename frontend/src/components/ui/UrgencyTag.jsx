@@ -1,21 +1,20 @@
-const estilos = {
-  alta: 'bg-red-100 text-red-700 border border-red-400',
-  media: 'bg-yellow-100 text-yellow-700 border border-yellow-400',
-  baja: 'bg-green-100 text-green-700 border border-green-400',
-};
-
-const iconos = {
-  alta: '🚨',
-  media: '⚠️',
-  baja: '✅',
-};
-
 export default function UrgencyTag({ nivel }) {
-  const estilo = estilos[nivel] || estilos.baja;
-  const icono = iconos[nivel] || '✅';
+  const colores = {
+    ALTA:  'bg-[#ff4d6d] text-white',
+    MEDIA: 'bg-[#f59e0b] text-white',
+    BAJA:  'bg-[#43e97b] text-white',
+    // Lowercase también funciona
+    alta:  'bg-[#ff4d6d] text-white',
+    media: 'bg-[#f59e0b] text-white',
+    baja:  'bg-[#43e97b] text-white',
+  };
+
   return (
-    <span className={`${estilo} px-3 py-1 rounded-full text-sm font-semibold`}>
-      {icono} {nivel.charAt(0).toUpperCase() + nivel.slice(1)}
+    <span 
+      className={`${colores[nivel] || 'bg-[#52526a] text-white'} text-[0.65rem] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider`}
+      style={{ fontFamily: "'Syne', sans-serif" }}
+    >
+      {nivel}
     </span>
   );
 }
