@@ -42,10 +42,15 @@ public class SecurityConfig {
                 ).permitAll()
 
                 // ── Solicitudes (urgencias públicas) ────────────────────
-                .requestMatchers(HttpMethod.GET,
-                        "/api/solicitudes/activas",
-                        "/api/solicitudes/ciudad/**",
-                        "/api/solicitudes/{id}"
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/solicitudes/activas",
+                                "/api/solicitudes/ciudad/**",
+                                "/api/solicitudes/{id}",
+                                "/api/solicitudes/tipo-sangre/**", // ← agregar
+                                "/api/solicitudes/urgencia/**", // ← agregar
+                                "/api/solicitudes/banco/**", // ← agregar
+                                "/api/solicitudes/radio", // ← agregar
+                                "/api/solicitudes/radio/**" // ← agregar
                 ).permitAll()
 
                 // ── Inventario (stock público por banco) ─────────────────
