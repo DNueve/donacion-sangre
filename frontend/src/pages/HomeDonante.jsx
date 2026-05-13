@@ -1,26 +1,88 @@
+import { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import StatCard from '../components/ui/StatCard';
 import UrgenciaCard from '../components/ui/UrgenciaCard';
 import { useAuth } from '../context/AuthContext';
+import { solicitudService, donacionService } from '../services/api';
 
 export default function HomeDonante() {
   const { user } = useAuth();
 
-  // Datos mock (después vendrán del backend)
-  const proximaDonacion = 47;
-  const totalDonaciones = 3;
+  const [urgencias, setUrgencias] = useState([]);
+  const [historial, setHistorial] = useState([]);
+  const [loadingUrgencias, setLoadingUrgencias] = useState(true);
+  const [diasProximaDonacion, setDiasProximaDonacion] = useState(null);
+
+  // ── Cargar urgencias compatibles con el tipo de sangre del donante ────────
+  useEffect(() => {
+    const cargarUrgencias = async () => {
+      try {
+        setLoadingUrgencias(true);
+
+        // Si el navegador tiene geolocalización, busca por radio
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              const { latitude, longitude } = pos.coords;
+              const res = await solicitudService.buscarPorTipoSangreEnRadio(
+                user.tipoSangre, latitude, longitude, 50
+              );
+              setUrgencias(res.data.slice(0, 3)); // solo 3 en home
+              setLoadingUrgencias(false);
+            },
+            async () => {
+              // Sin permisos de ubicación — carga todas las activas del tipo
+              const res = await solicitudService.listarPorTipoSangre(user.tipoSangre);
+              setUrgencias(res.data.slice(0, 3));
+              setLoadingUrgencias(false);
+            }
+          );
+        } else {
+          const res = await solicitudService.listarPorTipoSangre(user.tipoSangre);
+          setUrgencias(res.data.slice(0, 3));
+          setLoadingUrgencias(false);
+        }
+      } catch (err) {
+        console.error('Error cargando urgencias:', err);
+        setLoadingUrgencias(false);
+      }
+    };
+
+    if (user?.tipoSangre) cargarUrgencias();
+  }, [user]);
+
+  // ── Cargar historial de donaciones ────────────────────────────────────────
+  useEffect(() => {
+    const cargarHistorial = async () => {
+      try {
+        const res = await donacionService.historialUsuario(user.id);
+        setHistorial(res.data);
+
+        // Calcular días para próxima donación
+        const completadas = res.data.filter(d => d.estado === 'COMPLETADA');
+        if (completadas.length > 0) {
+          const ultima = new Date(completadas[0].fechaDonacion);
+          const proxima = new Date(ultima);
+          proxima.setDate(proxima.getDate() + 90);
+          const hoy = new Date();
+          const dias = Math.ceil((proxima - hoy) / (1000 * 60 * 60 * 24));
+          setDiasProximaDonacion(dias > 0 ? dias : 0);
+        }
+      } catch (err) {
+        console.error('Error cargando historial:', err);
+      }
+    };
+
+    if (user?.id) cargarHistorial();
+  }, [user]);
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  const totalDonaciones = historial.filter(d => d.estado === 'COMPLETADA').length;
   const vidasSalvadas = totalDonaciones * 3;
 
-  const urgenciasMock = [
-    { id: 1, banco: 'Hospital San Rafael', tipoSangre: 'O-', urgencia: 'ALTA', unidades: 3, distanciaKm: 2.3, fechaLimite: '2026-05-10' },
-    { id: 2, banco: 'Clínica Las Américas', tipoSangre: 'A+', urgencia: 'MEDIA', unidades: 5, distanciaKm: 4.1, fechaLimite: '2026-05-15' },
-    { id: 3, banco: 'Banco de Sangre Antioquia', tipoSangre: 'B+', urgencia: 'BAJA', unidades: 2, distanciaKm: 5.8, fechaLimite: '2026-05-20' },
-  ];
-
-  // Mensaje según tipo de sangre
   const mensajeTipo = {
-    'O-': 'Eres donante universal — tu sangre puede salvar a cualquiera',
-    'O+': 'Eres donante universal del grupo positivo',
+    'O-':  'Eres donante universal — tu sangre puede salvar a cualquiera',
+    'O+':  'Eres donante universal del grupo positivo',
     'AB+': 'Eres receptor universal',
   };
 
@@ -35,9 +97,20 @@ export default function HomeDonante() {
     'AB-': 'from-[#f472b6] to-[#ec4899]',
   };
 
+  // Mapear respuesta del backend al formato que espera UrgenciaCard
+  const mapearUrgencia = (s) => ({
+    id: s.id,
+    banco: s.bancoNombre,
+    tipoSangre: s.tipoSangre,
+    urgencia: s.urgencia,
+    unidades: s.unidadesFaltantes ?? s.unidadesNecesarias,
+    distanciaKm: s.distanciaKm ?? '—',
+    fechaLimite: s.fechaLimite,
+  });
+
   return (
     <Layout>
-      
+
       {/* Bienvenida */}
       <div className="mb-10">
         <h2 className="text-4xl font-extrabold mb-2" style={{ fontFamily: "'Syne', sans-serif" }}>
@@ -61,7 +134,7 @@ export default function HomeDonante() {
         <StatCard
           icon="📅"
           label="Próxima donación"
-          value={proximaDonacion}
+          value={diasProximaDonacion !== null ? diasProximaDonacion : '—'}
           subtitle="días restantes"
         />
         <StatCard
@@ -90,15 +163,28 @@ export default function HomeDonante() {
           </a>
         </div>
 
-        <div className="space-y-3">
-          {urgenciasMock.map(u => (
-            <UrgenciaCard 
-              key={u.id} 
-              urgencia={u} 
-              onClick={() => alert(`Has aceptado ayudar en: ${u.banco}`)}
-            />
-          ))}
-        </div>
+        {loadingUrgencias ? (
+          <div className="space-y-3">
+            {[1,2,3].map(i => (
+              <div key={i} className="h-24 bg-[#1e1e2e] rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        ) : urgencias.length === 0 ? (
+          <div className="bg-[#111118] border border-[#1e1e2e] rounded-2xl p-8 text-center">
+            <p className="text-4xl mb-3">✅</p>
+            <p className="text-[#52526a]">No hay urgencias activas para tu tipo de sangre en este momento.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {urgencias.map(s => (
+              <UrgenciaCard
+                key={s.id}
+                urgencia={mapearUrgencia(s)}
+                onClick={() => alert(`Has aceptado ayudar en: ${s.bancoNombre}`)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Cards inferiores */}

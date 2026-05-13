@@ -118,7 +118,7 @@ export default function Registro() {
       };
       delete payload.confirmarContrasena;
 
-      const response = await api.post('/auth/registro', payload);
+      const response = await api.post('/api/v1/auth/registro', payload);
       const { token, usuario } = response.data;
       login(usuario, token);
       navigate('/home-donante');
