@@ -100,6 +100,7 @@ export default function HomeDonante() {
   // Mapear respuesta del backend al formato que espera UrgenciaCard
   const mapearUrgencia = (s) => ({
     id: s.id,
+    bancoId: s.bancoId, 
     banco: s.bancoNombre,
     tipoSangre: s.tipoSangre,
     urgencia: s.urgencia,

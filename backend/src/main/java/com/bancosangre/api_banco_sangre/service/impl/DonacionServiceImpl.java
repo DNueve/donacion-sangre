@@ -24,6 +24,7 @@ public class DonacionServiceImpl implements DonacionService {
     private final UsuarioRepository usuarioRepository;
     private final BancoRepository bancoRepository;
     private final SolicitudRepository solicitudRepository;
+    private final InventarioRepository inventarioRepository;
 
     @Override
     public DonacionResponseDTO registrar(DonacionRequestDTO dto) {
@@ -130,8 +131,36 @@ public class DonacionServiceImpl implements DonacionService {
     @Override
     public DonacionResponseDTO cambiarEstado(Long id, EstadoDonacion estado) {
         Donacion donacion = obtenerEntidad(id);
+        EstadoDonacion estadoAnterior = donacion.getEstado();
         donacion.setEstado(estado);
-        return mapearResponse(donacionRepository.save(donacion));
+        Donacion guardada = donacionRepository.save(donacion);
+
+        // Si pasa a COMPLETADA → actualizar inventario y solicitud
+        if (estado == EstadoDonacion.COMPLETADA && estadoAnterior != EstadoDonacion.COMPLETADA) {
+
+            // 1. Sumar unidades al inventario
+            inventarioRepository.findByBancoIdAndTipoSangre(
+                    donacion.getBanco().getId(), donacion.getTipoSangre())
+                    .ifPresent(inv -> {
+                        int unidadesNuevas = (donacion.getCantidadMl() != null ? donacion.getCantidadMl() : 450) / 450;
+                        inv.setUnidadesDisponibles(inv.getUnidadesDisponibles() + unidadesNuevas);
+                        inventarioRepository.save(inv);
+                    });
+
+            // 2. Actualizar unidades recibidas en la solicitud
+            if (donacion.getSolicitud() != null) {
+                Solicitud solicitud = donacion.getSolicitud();
+                solicitud.setUnidadesRecibidas(solicitud.getUnidadesRecibidas() + 1);
+
+                // Si se completaron todas las unidades → marcar solicitud como COMPLETADA
+                if (solicitud.getUnidadesRecibidas() >= solicitud.getUnidadesNecesarias()) {
+                    solicitud.setEstado(Solicitud.EstadoSolicitud.COMPLETADA);
+                }
+                solicitudRepository.save(solicitud);
+            }
+        }
+
+        return mapearResponse(guardada);
     }
 
     @Override

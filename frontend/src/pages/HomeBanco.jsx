@@ -13,36 +13,28 @@ export default function HomeBanco() {
   const [inventario, setInventario] = useState([]);
   const [solicitudes, setSolicitudes] = useState([]);
   const [donacionesMes, setDonacionesMes] = useState(0);
+  const [donacionesPendientes, setDonacionesPendientes] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ── Cargar datos del banco del admin logueado ─────────────────────────────
   useEffect(() => {
     const cargar = async () => {
       try {
         setLoading(true);
-
-        // Buscar el banco donde este usuario es admin
         const resBancos = await bancoService.listarActivos();
         const miBanco = resBancos.data.find(b => b.admin?.id === user?.id);
-
-        if (!miBanco) {
-          setLoading(false);
-          return;
-        }
-
+        if (!miBanco) { setLoading(false); return; }
         setBanco(miBanco);
 
-        // Cargar inventario, solicitudes y donaciones en paralelo
         const [resInv, resSol, resDon] = await Promise.all([
           inventarioService.listarPorBanco(miBanco.id),
-          solicitudService.listarPorBancoYEstado(miBanco.id, 'ACTIVA'),
+          solicitudService.listarPorBanco(miBanco.id),
           donacionService.listarPorBanco(miBanco.id),
         ]);
 
         setInventario(resInv.data);
         setSolicitudes(resSol.data);
+        setDonacionesPendientes(resDon.data.filter(d => d.estado === 'PENDIENTE'));
 
-        // Donaciones completadas este mes
         const hoy = new Date();
         const completadasMes = resDon.data.filter(d => {
           if (d.estado !== 'COMPLETADA') return false;
@@ -58,13 +50,33 @@ export default function HomeBanco() {
         setLoading(false);
       }
     };
-
     if (user?.id) cargar();
   }, [user]);
 
+  const cambiarEstadoDonacion = async (donacionId, estado) => {
+    try {
+      await donacionService.cambiarEstado(donacionId, estado);
+      const resDon = await donacionService.listarPorBanco(banco.id);
+      setDonacionesPendientes(resDon.data.filter(d => d.estado === 'PENDIENTE'));
+      if (estado === 'COMPLETADA') {
+        const resInv = await inventarioService.listarPorBanco(banco.id);
+        setInventario(resInv.data);
+        const hoy = new Date();
+        const completadasMes = resDon.data.filter(d => {
+          if (d.estado !== 'COMPLETADA') return false;
+          const fecha = new Date(d.fechaDonacion);
+          return fecha.getMonth() === hoy.getMonth() &&
+                 fecha.getFullYear() === hoy.getFullYear();
+        });
+        setDonacionesMes(completadasMes.length);
+      }
+    } catch (err) {
+      console.error('Error al cambiar estado:', err);
+    }
+  };
+
   const totalUnidades = inventario.reduce((acc, i) => acc + i.unidadesDisponibles, 0);
   const tiposBajoStock = inventario.filter(i => i.bajoStock).length;
-
   const colorUrgencia = { ALTA: 'border-[#ff4d6d]', MEDIA: 'border-[#f59e0b]', BAJA: 'border-[#43e97b]' };
 
   if (loading) {
@@ -139,6 +151,64 @@ export default function HomeBanco() {
         />
       </div>
 
+      {/* Citas pendientes */}
+      <div className="bg-[#111118] border border-[#1e1e2e] rounded-2xl p-6 mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-extrabold text-[#e8e8f0]"
+            style={{ fontFamily: "'Syne', sans-serif" }}>
+            📅 Citas de donación pendientes
+          </h2>
+          <span className="text-xs text-[#52526a]">
+            {donacionesPendientes.length} pendiente{donacionesPendientes.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+
+        {donacionesPendientes.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-3xl mb-2">📅</p>
+            <p className="text-[#52526a] text-sm">No hay citas pendientes.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {donacionesPendientes.map(d => (
+              <div key={d.id}
+                className="flex items-center justify-between p-4 rounded-xl bg-[#08080f] border border-[#1e1e2e]">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-[#dc2626]/10 border border-[#dc2626]/30 flex items-center justify-center text-sm font-extrabold text-[#dc2626]"
+                    style={{ fontFamily: "'Syne', sans-serif" }}>
+                    {d.usuarioNombre?.[0]}{d.usuarioApellido?.[0]}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-[#e8e8f0]">
+                      {d.usuarioNombre} {d.usuarioApellido}
+                    </p>
+                    <p className="text-xs text-[#52526a]">
+                      🩸 {d.tipoSangre} · 📅 {new Date(d.fechaDonacion + 'T12:00:00').toLocaleDateString('es-CO', {
+                        weekday: 'long', day: 'numeric', month: 'long'
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => cambiarEstadoDonacion(d.id, 'COMPLETADA')}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[rgba(67,233,123,0.1)] border border-[#43e97b]/30 text-[#43e97b] hover:bg-[rgba(67,233,123,0.2)] transition-all"
+                  >
+                    ✅ Completar
+                  </button>
+                  <button
+                    onClick={() => cambiarEstadoDonacion(d.id, 'RECHAZADA')}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#08080f] border border-[#1e1e2e] text-[#52526a] hover:border-[#dc2626]/50 transition-all"
+                  >
+                    ✕ Rechazar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Inventario */}
       <div className="bg-[#111118] border border-[#1e1e2e] rounded-2xl p-6 mb-6">
         <div className="flex items-center justify-between mb-6">
@@ -160,8 +230,7 @@ export default function HomeBanco() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {inventario.map(item => (
-              <div
-                key={item.id}
+              <div key={item.id}
                 className={`flex flex-col items-center rounded-xl p-4 gap-2 border transition-all ${
                   item.bajoStock
                     ? 'bg-[rgba(220,38,38,0.05)] border-[#dc2626]/30'
@@ -202,9 +271,8 @@ export default function HomeBanco() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {solicitudes.map((s, idx) => (
-              <div
-                key={s.id}
+            {solicitudes.map(s => (
+              <div key={s.id}
                 className={`flex items-center justify-between p-4 rounded-xl border-l-4 bg-[#08080f] border border-[#1e1e2e] ${colorUrgencia[s.urgencia]}`}
               >
                 <div className="flex-1 min-w-0">

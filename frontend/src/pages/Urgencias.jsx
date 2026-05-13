@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
-import BloodTypeBadge from '../components/ui/BloodTypeBadge';
-import UrgencyTag from '../components/ui/UrgencyTag';
+import UrgenciaCard from '../components/ui/UrgenciaCard';
 import { useAuth } from '../context/AuthContext';
 import { solicitudService } from '../services/api';
 
@@ -16,7 +15,6 @@ export default function Urgencias() {
   const [filtroSangre, setFiltroSangre] = useState('TODAS');
   const [soloCompatibles, setSoloCompatibles] = useState(false);
 
-  // ── Compatibilidad OMS (misma tabla que el backend) ──────────────────────
   const COMPATIBILIDAD = {
     'O-':  ['O-','O+','A-','A+','B-','B+','AB-','AB+'],
     'O+':  ['O+','A+','B+','AB+'],
@@ -28,11 +26,9 @@ export default function Urgencias() {
     'AB+': ['AB+'],
   };
 
-  const esCompatible = (tipoSangreDonante, tipoSangreReceptor) => {
-    return COMPATIBILIDAD[tipoSangreDonante]?.includes(tipoSangreReceptor) ?? false;
-  };
+  const esCompatible = (donante, receptor) =>
+    COMPATIBILIDAD[donante]?.includes(receptor) ?? false;
 
-  // ── Cargar solicitudes ───────────────────────────────────────────────────
   useEffect(() => {
     const cargar = async () => {
       try {
@@ -51,25 +47,12 @@ export default function Urgencias() {
     cargar();
   }, []);
 
-  // ── Filtros ──────────────────────────────────────────────────────────────
   const solicitudesFiltradas = solicitudes.filter(s => {
     if (filtroUrgencia !== 'TODAS' && s.urgencia !== filtroUrgencia) return false;
     if (filtroSangre !== 'TODAS' && s.tipoSangre !== filtroSangre) return false;
     if (soloCompatibles && user?.tipoSangre && !esCompatible(user.tipoSangre, s.tipoSangre)) return false;
     return true;
   });
-
-  const colorUrgencia = {
-    ALTA:  'border-[#ff4d6d]',
-    MEDIA: 'border-[#f59e0b]',
-    BAJA:  'border-[#43e97b]',
-  };
-
-  const bgUrgencia = {
-    ALTA:  'from-[#ff4d6d]/5 to-transparent',
-    MEDIA: 'from-[#f59e0b]/5 to-transparent',
-    BAJA:  'from-[#43e97b]/5 to-transparent',
-  };
 
   return (
     <Layout>
@@ -87,7 +70,6 @@ export default function Urgencias() {
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 mb-8">
 
-        {/* Filtro urgencia */}
         <div className="flex gap-2">
           {['TODAS', 'ALTA', 'MEDIA', 'BAJA'].map(u => (
             <button
@@ -105,7 +87,6 @@ export default function Urgencias() {
           ))}
         </div>
 
-        {/* Filtro tipo sangre */}
         <select
           value={filtroSangre}
           onChange={e => setFiltroSangre(e.target.value)}
@@ -118,7 +99,6 @@ export default function Urgencias() {
           ))}
         </select>
 
-        {/* Toggle compatibles */}
         {user?.tipoSangre && (
           <button
             onClick={() => setSoloCompatibles(!soloCompatibles)}
@@ -133,7 +113,6 @@ export default function Urgencias() {
           </button>
         )}
 
-        {/* Contador */}
         <span className="ml-auto text-xs text-[#52526a] self-center">
           {solicitudesFiltradas.length} solicitud{solicitudesFiltradas.length !== 1 ? 'es' : ''}
         </span>
@@ -159,71 +138,20 @@ export default function Urgencias() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {solicitudesFiltradas.map(s => (
-            <div
+            <UrgenciaCard
               key={s.id}
-              className={`bg-gradient-to-br ${bgUrgencia[s.urgencia]} bg-[#111118] border border-[#1e1e2e] border-t-4 ${colorUrgencia[s.urgencia]} rounded-2xl p-6 flex flex-col gap-4 hover:border-opacity-100 transition-all`}
-            >
-              {/* Header */}
-              <div className="flex justify-between items-start">
-                <div className="flex-1 min-w-0">
-                  <p className="font-extrabold text-[#e8e8f0] text-lg truncate"
-                    style={{ fontFamily: "'Syne', sans-serif" }}>
-                    {s.bancoNombre}
-                  </p>
-                  <p className="text-sm text-[#52526a] mt-0.5">
-                    📍 {s.bancoCiudad}
-                    {s.fechaLimite && (
-                      <span className="ml-2">· Límite: {new Date(s.fechaLimite).toLocaleDateString('es-CO')}</span>
-                    )}
-                  </p>
-                </div>
-                <UrgencyTag nivel={s.urgencia.toLowerCase()} />
-              </div>
-
-              {/* Info */}
-              <div className="flex items-center gap-6">
-                <div className="flex flex-col items-center">
-                  <p className="text-xs text-[#52526a] mb-1.5">Tipo requerido</p>
-                  <BloodTypeBadge tipo={s.tipoSangre} />
-                </div>
-                <div className="flex flex-col items-center">
-                  <p className="text-xs text-[#52526a] mb-1.5">Unidades faltantes</p>
-                  <p className="text-3xl font-extrabold text-[#dc2626]"
-                    style={{ fontFamily: "'Syne', sans-serif" }}>
-                    {s.unidadesFaltantes}
-                  </p>
-                </div>
-                {user?.tipoSangre && (
-                  <div className="flex flex-col items-center ml-auto">
-                    <p className="text-xs text-[#52526a] mb-1.5">Compatible</p>
-                    <span className={`text-xl ${esCompatible(user.tipoSangre, s.tipoSangre) ? 'text-[#43e97b]' : 'text-[#52526a]'}`}>
-                      {esCompatible(user.tipoSangre, s.tipoSangre) ? '✅' : '✗'}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Motivo */}
-              {s.motivo && (
-                <p className="text-xs text-[#52526a] bg-[#08080f] rounded-lg px-3 py-2 border border-[#1e1e2e]">
-                  💬 {s.motivo}
-                </p>
-              )}
-
-              {/* Botón */}
-              <button
-                disabled={user?.tipoSangre && !esCompatible(user.tipoSangre, s.tipoSangre)}
-                className="w-full py-2.5 rounded-xl text-sm font-extrabold tracking-wide text-white transition-all
-                  bg-gradient-to-r from-[#dc2626] to-[#b91c1c] shadow-lg shadow-[#dc2626]/20
-                  hover:shadow-xl hover:-translate-y-0.5
-                  disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none"
-                style={{ fontFamily: "'Syne', sans-serif" }}
-              >
-                {user?.tipoSangre && !esCompatible(user.tipoSangre, s.tipoSangre)
-                  ? 'No compatible con tu tipo'
-                  : '🩸 Quiero donar'}
-              </button>
-            </div>
+              urgencia={{
+                id: s.id,
+                bancoId: s.bancoId,
+                banco: s.bancoNombre,
+                tipoSangre: s.tipoSangre,
+                urgencia: s.urgencia,
+                unidades: s.unidadesFaltantes,
+                distanciaKm: s.distanciaKm ?? '—',
+                fechaLimite: s.fechaLimite,
+                motivo: s.motivo,
+              }}
+            />
           ))}
         </div>
       )}
