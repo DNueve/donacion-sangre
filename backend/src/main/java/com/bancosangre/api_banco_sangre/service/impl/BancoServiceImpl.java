@@ -8,6 +8,7 @@ import com.bancosangre.api_banco_sangre.exception.RecursoNoEncontradoException;
 import com.bancosangre.api_banco_sangre.repository.BancoRepository;
 import com.bancosangre.api_banco_sangre.repository.UsuarioRepository;
 import com.bancosangre.api_banco_sangre.service.BancoService;
+import com.bancosangre.api_banco_sangre.util.GeoUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,7 +36,6 @@ public class BancoServiceImpl implements BancoService {
     @Override
     public BancoResponseDTO actualizar(Long id, BancoRequestDTO dto) {
         Banco banco = obtenerEntidad(id);
-        // Si cambia el NIT, verificar unicidad
         if (!banco.getNit().equals(dto.getNit()) && bancoRepository.existsByNit(dto.getNit())) {
             throw new IllegalArgumentException("Ya existe un banco con el NIT: " + dto.getNit());
         }
@@ -82,7 +82,8 @@ public class BancoServiceImpl implements BancoService {
     @Transactional(readOnly = true)
     public List<BancoResponseDTO> buscarEnRadio(Double lat, Double lon, Double radioKm) {
         return bancoRepository.findBancosEnRadio(lat, lon, radioKm).stream()
-                .map(b -> mapearResponse(b, calcularDistanciaKm(lat, lon, b.getLatitud(), b.getLongitud())))
+                .map(b -> mapearResponse(b,
+                        GeoUtils.calcularDistanciaKm(lat, lon, b.getLatitud(), b.getLongitud())))
                 .toList();
     }
 
@@ -154,19 +155,7 @@ public class BancoServiceImpl implements BancoService {
 
     private Usuario resolverAdmin(Long adminId) {
         return usuarioRepository.findById(adminId)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario admin no encontrado con id: " + adminId));
-    }
-
-    /**
-     * Fórmula de Haversine: distancia entre dos coordenadas en km.
-     */
-    public static double calcularDistanciaKm(double lat1, double lon1, double lat2, double lon2) {
-        final double R = 6371.0;
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "Usuario admin no encontrado con id: " + adminId));
     }
 }

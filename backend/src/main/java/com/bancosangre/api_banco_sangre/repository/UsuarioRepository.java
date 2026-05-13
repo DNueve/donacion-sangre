@@ -2,9 +2,12 @@ package com.bancosangre.api_banco_sangre.repository;
 
 import com.bancosangre.api_banco_sangre.entity.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.util.Optional;
+    
+import java.util.List;
+import java.util.Optional;      
 
 @Repository
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
@@ -30,5 +33,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     // Para validar duplicados de documento
     boolean existsByNumeroDocumento(String numeroDocumento);
 
+    // Donantes activos filtrados por lista de tipos de sangre compatibles
+    @Query("SELECT u FROM Usuario u JOIN u.rol r WHERE r.nombre = 'DONANTE' AND u.activo = true AND u.tipoSangre IN :tipos")
+    List<Usuario> findDonantesActivosPorTiposSangre(@Param("tipos") List<String> tipos);
 
 }
