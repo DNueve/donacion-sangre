@@ -23,7 +23,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    // ─── REGISTRO DE NUEVO DONANTE ───────────────────────────────────
+    // ─── REGISTRO ────────────────────────────────────────────────────
     @Override
     @Transactional
     public AuthResponseDTO registrar(RegistroDTO dto) {
@@ -38,9 +38,15 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("El número de documento ya está registrado");
         }
 
-        // 3. Buscar el rol DONANTE
-        Rol rolDonante = rolRepository.findByNombre("DONANTE")
-                .orElseThrow(() -> new RuntimeException("Rol DONANTE no encontrado en la BD"));
+        // 3. Buscar el rol según rolId del DTO (default DONANTE si no viene)
+        Rol rol;
+        if (dto.getRolId() != null) {
+            rol = rolRepository.findById(dto.getRolId())
+                    .orElseThrow(() -> new RuntimeException("Rol no encontrado con id: " + dto.getRolId()));
+        } else {
+            rol = rolRepository.findByNombre("DONANTE")
+                    .orElseThrow(() -> new RuntimeException("Rol DONANTE no encontrado en la BD"));
+        }
 
         // 4. Crear el nuevo usuario
         Usuario nuevoUsuario = new Usuario();
@@ -50,7 +56,6 @@ public class AuthServiceImpl implements AuthService {
         nuevoUsuario.setApellido(dto.getApellido());
         nuevoUsuario.setCorreo(dto.getCorreo());
         nuevoUsuario.setCelular(dto.getCelular());
-        // ⭐ La contraseña se ENCRIPTA con BCrypt antes de guardar
         nuevoUsuario.setContrasena(passwordEncoder.encode(dto.getContrasena()));
         nuevoUsuario.setTipoSangre(dto.getTipoSangre());
         nuevoUsuario.setFechaNacimiento(dto.getFechaNacimiento());
@@ -60,7 +65,7 @@ public class AuthServiceImpl implements AuthService {
         nuevoUsuario.setLongitud(dto.getLongitud());
         nuevoUsuario.setCiudad(dto.getCiudad());
         nuevoUsuario.setDepartamento(dto.getDepartamento());
-        nuevoUsuario.setRol(rolDonante);
+        nuevoUsuario.setRol(rol);
         nuevoUsuario.setActivo(true);
 
         // 5. Guardar en BD
@@ -90,7 +95,7 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Usuario inactivo. Contacta al administrador");
         }
 
-        // 3. Verificar que la contraseña coincida (compara hash BCrypt)
+        // 3. Verificar contraseña
         if (!passwordEncoder.matches(dto.getContrasena(), usuario.getContrasena())) {
             throw new RuntimeException("Credenciales inválidas");
         }
@@ -106,7 +111,7 @@ public class AuthServiceImpl implements AuthService {
         return construirAuthResponse(usuario, token);
     }
 
-    // ─── HELPER: Construye la respuesta sin exponer la contraseña ───
+    // ─── HELPER ──────────────────────────────────────────────────────
     private AuthResponseDTO construirAuthResponse(Usuario usuario, String token) {
         AuthResponseDTO.UsuarioInfo info = new AuthResponseDTO.UsuarioInfo(
                 usuario.getId(),

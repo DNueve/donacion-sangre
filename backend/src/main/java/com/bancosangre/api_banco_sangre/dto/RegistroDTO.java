@@ -67,4 +67,7 @@ public class RegistroDTO {
 
     @NotBlank(message = "El departamento es obligatorio")
     private String departamento;
+
+    // ─── Rol (opcional, default DONANTE) ─────────────────────────────
+    private Long rolId;
 }
