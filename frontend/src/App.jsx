@@ -6,14 +6,14 @@ import HomeDonante from './pages/HomeDonante';
 import HomeBanco from './pages/HomeBanco';
 import Urgencias from './pages/Urgencias';
 import MapaBancos from './pages/MapaBancos';
+import InventarioBanco from './pages/InventarioBanco';
+import SolicitudesBanco from './pages/SolicitudesBanco';
 
 function RutaProtegida({ children, rol }) {
   const { user, cargando } = useAuth();
 
-  if (cargando) return null; // espera a que se recupere la sesión
-
+  if (cargando) return null;
   if (!user) return <Navigate to="/login" />;
-
   if (rol && user.rol !== rol) return <Navigate to="/login" />;
 
   return children;
@@ -37,6 +37,18 @@ function App() {
           <Route path="/home-banco" element={
             <RutaProtegida rol="ADMIN_BANCO">
               <HomeBanco />
+            </RutaProtegida>
+          } />
+
+          <Route path="/inventario" element={
+            <RutaProtegida rol="ADMIN_BANCO">
+              <InventarioBanco />
+            </RutaProtegida>
+          } />
+
+          <Route path="/solicitudes" element={
+            <RutaProtegida rol="ADMIN_BANCO">
+              <SolicitudesBanco />
             </RutaProtegida>
           } />
 
