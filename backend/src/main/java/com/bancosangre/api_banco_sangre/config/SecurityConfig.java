@@ -11,10 +11,11 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.client.RestTemplate;
 
 @Configuration
 @RequiredArgsConstructor
-@EnableMethodSecurity  // ← habilita @PreAuthorize en los controllers
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
@@ -32,6 +33,9 @@ public class SecurityConfig {
                 // ── Auth ────────────────────────────────────────────────
                 .requestMatchers("/api/v1/auth/**").permitAll()
 
+                // ── Claude proxy ────────────────────────────────────────
+                .requestMatchers(HttpMethod.POST, "/api/claude/chat").permitAll()
+
                 // ── Bancos (consultas públicas) ─────────────────────────
                 .requestMatchers(HttpMethod.GET,
                         "/api/bancos/activos",
@@ -42,15 +46,15 @@ public class SecurityConfig {
                 ).permitAll()
 
                 // ── Solicitudes (urgencias públicas) ────────────────────
-                        .requestMatchers(HttpMethod.GET,
-                                "/api/solicitudes/activas",
-                                "/api/solicitudes/ciudad/**",
-                                "/api/solicitudes/{id}",
-                                "/api/solicitudes/tipo-sangre/**", // ← agregar
-                                "/api/solicitudes/urgencia/**", // ← agregar
-                                "/api/solicitudes/banco/**", // ← agregar
-                                "/api/solicitudes/radio", // ← agregar
-                                "/api/solicitudes/radio/**" // ← agregar
+                .requestMatchers(HttpMethod.GET,
+                        "/api/solicitudes/activas",
+                        "/api/solicitudes/ciudad/**",
+                        "/api/solicitudes/{id}",
+                        "/api/solicitudes/tipo-sangre/**",
+                        "/api/solicitudes/urgencia/**",
+                        "/api/solicitudes/banco/**",
+                        "/api/solicitudes/radio",
+                        "/api/solicitudes/radio/**"
                 ).permitAll()
 
                 // ── Inventario (stock público por banco) ─────────────────
@@ -74,5 +78,10 @@ public class SecurityConfig {
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }
