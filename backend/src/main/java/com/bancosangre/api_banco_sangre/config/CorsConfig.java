@@ -21,7 +21,7 @@ public class CorsConfig {
         config.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "http://localhost:3000",
-                "https://donacion-sangre.vercel.app"
+                "https://donacion-sangre-one.vercel.app"
         ));
 
         // Métodos HTTP permitidos
