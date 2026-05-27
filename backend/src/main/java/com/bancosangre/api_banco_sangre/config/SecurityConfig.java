@@ -23,54 +23,57 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
+                .csrf(AbstractHttpConfigurer::disable)
 
-            .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> auth
 
-                // ── Preflight CORS ──────────────────────────────────────
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        //── Swagger ──────────────────────────────────────
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**")
+                        .permitAll()
 
-                // ── Auth ────────────────────────────────────────────────
-                .requestMatchers("/api/v1/auth/**").permitAll()
+                        // ── Preflight CORS ──────────────────────────────────────
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // ── Claude proxy ────────────────────────────────────────
-                .requestMatchers(HttpMethod.POST, "/api/claude/chat").permitAll()
+                        // ── Auth ────────────────────────────────────────────────
+                        .requestMatchers("/api/v1/auth/**").permitAll()
 
-                // ── Bancos (consultas públicas) ─────────────────────────
-                .requestMatchers(HttpMethod.GET,
-                        "/api/bancos/activos",
-                        "/api/bancos/radio",
-                        "/api/bancos/ciudad/**",
-                        "/api/bancos/departamento/**",
-                        "/api/bancos/{id}"
-                ).permitAll()
+                        // ── Claude proxy ────────────────────────────────────────
+                        .requestMatchers(HttpMethod.POST, "/api/claude/chat").permitAll()
 
-                // ── Solicitudes (urgencias públicas) ────────────────────
-                .requestMatchers(HttpMethod.GET,
-                        "/api/solicitudes/activas",
-                        "/api/solicitudes/ciudad/**",
-                        "/api/solicitudes/{id}",
-                        "/api/solicitudes/tipo-sangre/**",
-                        "/api/solicitudes/urgencia/**",
-                        "/api/solicitudes/banco/**",
-                        "/api/solicitudes/radio",
-                        "/api/solicitudes/radio/**"
-                ).permitAll()
+                        // ── Bancos (consultas públicas) ─────────────────────────
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/bancos/activos",
+                                "/api/bancos/radio",
+                                "/api/bancos/ciudad/**",
+                                "/api/bancos/departamento/**",
+                                "/api/bancos/{id}")
+                        .permitAll()
 
-                // ── Inventario (stock público por banco) ─────────────────
-                .requestMatchers(HttpMethod.GET,
-                        "/api/inventario/banco/**"
-                ).permitAll()
+                        // ── Solicitudes (urgencias públicas) ────────────────────
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/solicitudes/activas",
+                                "/api/solicitudes/ciudad/**",
+                                "/api/solicitudes/{id}",
+                                "/api/solicitudes/tipo-sangre/**",
+                                "/api/solicitudes/urgencia/**",
+                                "/api/solicitudes/banco/**",
+                                "/api/solicitudes/radio",
+                                "/api/solicitudes/radio/**")
+                        .permitAll()
 
-                // ── Todo lo demás requiere JWT ───────────────────────────
-                .anyRequest().authenticated()
-            )
+                        // ── Inventario (stock público por banco) ─────────────────
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/inventario/banco/**")
+                        .permitAll()
 
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
+                        // ── Todo lo demás requiere JWT ───────────────────────────
+                        .anyRequest().authenticated())
 
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

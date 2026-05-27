@@ -20,7 +20,8 @@ public class CorsConfig {
         // Permitir el frontend en localhost:5173 (Vite)
         config.setAllowedOrigins(List.of(
                 "http://localhost:5173",
-                "http://localhost:3000"
+                "http://localhost:3000",
+                "https://donacion-sangre.vercel.app"
         ));
 
         // Métodos HTTP permitidos
