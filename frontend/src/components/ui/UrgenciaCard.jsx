@@ -47,7 +47,7 @@ export default function UrgenciaCard({ urgencia }) {
 
   // ── Llamar a Groq vía proxy backend ──────────────────────────────────────
   const llamarGroq = async (historial) => {
-    const res = await fetch('http://localhost:8081/api/claude/chat', {
+const res = await fetch(`${import.meta.env.VITE_API_URL}/api/claude/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
