@@ -98,6 +98,9 @@ export const donacionService = {
   registrar: (data) =>
     api.post('/api/donaciones', data),
 
+  actualizar: (id, data) =>
+    api.put(`/api/donaciones/${id}`, data),
+
   obtenerPorId: (id) =>
     api.get(`/api/donaciones/${id}`),
 

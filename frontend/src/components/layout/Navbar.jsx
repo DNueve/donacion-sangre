@@ -27,8 +27,7 @@ export default function Navbar() {
   const linksSuperAdmin = [
     { path: '/super-admin', label: 'INICIO' },
     { path: '/super-admin/bancos', label: 'BANCOS' },
-    { path: '/super-admin/reporte-donaciones', label: 'REP. DONACIONES' },
-    { path: '/super-admin/reporte-inventario', label: 'REP. INVENTARIO' },
+    { path: '/super-admin/reportes', label: 'REPORTES' },
   ];
 
   const links =
@@ -49,26 +48,26 @@ export default function Navbar() {
   return (
     <nav className="bg-[#111118]/80 backdrop-blur-md border-b border-[#1e1e2e] sticky top-0 z-50">
       <div className="max-w-[1280px] mx-auto px-6 py-4 flex items-center justify-between">
-        
+
         {/* Logo */}
-        <div className="flex items-center gap-2 cursor-pointer" 
+        <div className="flex items-center gap-2 cursor-pointer"
              onClick={() => navigate(homePath)}>
           <span className="text-2xl">🩸</span>
-          <h1 className="text-xl font-extrabold text-[#e8e8f0]" 
+          <h1 className="text-xl font-extrabold text-[#e8e8f0]"
               style={{ fontFamily: "'Syne', sans-serif" }}>
             DonaVida
           </h1>
         </div>
 
         {/* Links centro */}
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden md:flex items-center gap-8">
           {links.map(link => (
-            <a 
+            <a
               key={link.path}
               href={link.path}
               className={`text-sm font-bold transition-colors ${
-                location.pathname === link.path 
-                  ? 'text-[#dc2626]' 
+                location.pathname === link.path
+                  ? 'text-[#dc2626]'
                   : 'text-[#52526a] hover:text-[#e8e8f0]'
               }`}
               style={{ fontFamily: "'Syne', sans-serif" }}
@@ -91,9 +90,9 @@ export default function Navbar() {
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#dc2626] to-[#991b1b] flex items-center justify-center font-bold text-white">
             {user?.nombre?.charAt(0) || '?'}
           </div>
-          <button 
-            onClick={handleLogout} 
-            className="text-[#52526a] hover:text-[#ff4d6d] transition-colors text-lg ml-2" 
+          <button
+            onClick={handleLogout}
+            className="text-[#52526a] hover:text-[#ff4d6d] transition-colors text-lg ml-2"
             title="Cerrar sesión"
           >
             ⏻

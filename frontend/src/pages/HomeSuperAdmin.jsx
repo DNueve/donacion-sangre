@@ -46,24 +46,17 @@ export default function HomeSuperAdmin() {
   const accesosRapidos = [
     {
       titulo: 'Gestión de Bancos',
-      descripcion: 'Crear, editar y administrar los bancos de sangre del sistema.',
+      descripcion: 'Crear, editar y administrar los bancos de sangre del sistema. Incluye asignación de admins.',
       icono: '🏦',
       path: '/super-admin/bancos',
       tipo: 'maestra',
     },
     {
-      titulo: 'Reporte de Donaciones',
-      descripcion: 'Análisis global de donaciones por banco, tipo de sangre y periodo.',
+      titulo: 'Centro de Reportes',
+      descripcion: 'Genera y descarga reportes de donaciones e inventario en formato Excel con filtros por fecha.',
       icono: '📊',
-      path: '/super-admin/reporte-donaciones',
-      tipo: 'reporte',
-    },
-    {
-      titulo: 'Reporte de Inventario',
-      descripcion: 'Monitoreo de stock crítico y alertas de disponibilidad por tipo.',
-      icono: '⚠️',
-      path: '/super-admin/reporte-inventario',
-      tipo: 'reporte',
+      path: '/super-admin/reportes',
+      tipo: 'reportes',
     },
   ];
 
@@ -134,7 +127,7 @@ export default function HomeSuperAdmin() {
           ⚡ Accesos rápidos
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {accesosRapidos.map((item) => (
             <button
               key={item.path}
@@ -144,7 +137,7 @@ export default function HomeSuperAdmin() {
               <div className="flex items-start justify-between mb-3">
                 <div className="text-4xl">{item.icono}</div>
                 <span className={`text-[0.65rem] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                  item.tipo === 'reporte'
+                  item.tipo === 'reportes'
                     ? 'bg-[rgba(220,38,38,0.1)] border border-[#dc2626]/30 text-[#dc2626]'
                     : 'bg-[rgba(67,233,123,0.08)] border border-[#43e97b]/30 text-[#43e97b]'
                 }`}>

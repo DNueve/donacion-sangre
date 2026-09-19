@@ -10,8 +10,7 @@ import InventarioBanco from './pages/InventarioBanco';
 import SolicitudesBanco from './pages/SolicitudesBanco';
 import HomeSuperAdmin from './pages/HomeSuperAdmin';
 import GestionBancos from './pages/GestionBancos';
-import ReporteDonaciones from './pages/ReporteDonaciones';
-import ReporteInventario from './pages/ReporteInventario';
+import Reportes from './pages/Reportes';
 
 function RutaProtegida({ children, rol }) {
   const { user, cargando } = useAuth();
@@ -71,15 +70,9 @@ function App() {
             </RutaProtegida>
           } />
 
-          <Route path="/super-admin/reporte-donaciones" element={
+          <Route path="/super-admin/reportes" element={
             <RutaProtegida rol="SUPER_ADMIN">
-              <ReporteDonaciones />
-            </RutaProtegida>
-          } />
-
-          <Route path="/super-admin/reporte-inventario" element={
-            <RutaProtegida rol="SUPER_ADMIN">
-              <ReporteInventario />
+              <Reportes />
             </RutaProtegida>
           } />
 

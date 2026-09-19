@@ -6,6 +6,13 @@ import StatCard from '../components/ui/StatCard';
 import { useAuth } from '../context/AuthContext';
 import { bancoService, solicitudService, donacionService, inventarioService } from '../services/api';
 
+const FORM_COMPLETAR_VACIO = {
+  unidades: 1,
+  hemoglobina: '',
+  presionArterial: '',
+  observaciones: '',
+};
+
 export default function HomeBanco() {
   const { user } = useAuth();
 
@@ -15,6 +22,13 @@ export default function HomeBanco() {
   const [donacionesMes, setDonacionesMes] = useState(0);
   const [donacionesPendientes, setDonacionesPendientes] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // ── Modal de completar donación ──
+  const [modalCompletar, setModalCompletar] = useState(false);
+  const [donacionActiva, setDonacionActiva] = useState(null);
+  const [formCompletar, setFormCompletar] = useState(FORM_COMPLETAR_VACIO);
+  const [guardandoCompletar, setGuardandoCompletar] = useState(false);
+  const [errorCompletar, setErrorCompletar] = useState('');
 
   useEffect(() => {
     const cargar = async () => {
@@ -53,25 +67,104 @@ export default function HomeBanco() {
     if (user?.id) cargar();
   }, [user]);
 
-  const cambiarEstadoDonacion = async (donacionId, estado) => {
+  // ── Refrescar datos tras cambio ─────────────────────────────────────
+  const refrescarDatos = async () => {
+    if (!banco) return;
+    const [resInv, resDon] = await Promise.all([
+      inventarioService.listarPorBanco(banco.id),
+      donacionService.listarPorBanco(banco.id),
+    ]);
+    setInventario(resInv.data);
+    setDonacionesPendientes(resDon.data.filter(d => d.estado === 'PENDIENTE'));
+    const hoy = new Date();
+    const completadasMes = resDon.data.filter(d => {
+      if (d.estado !== 'COMPLETADA') return false;
+      const fecha = new Date(d.fechaDonacion);
+      return fecha.getMonth() === hoy.getMonth() &&
+             fecha.getFullYear() === hoy.getFullYear();
+    });
+    setDonacionesMes(completadasMes.length);
+  };
+
+  // ── Rechazar (directo, sin modal) ───────────────────────────────────
+  const rechazarDonacion = async (donacionId) => {
+    if (!confirm('¿Rechazar esta cita de donación?')) return;
     try {
-      await donacionService.cambiarEstado(donacionId, estado);
-      const resDon = await donacionService.listarPorBanco(banco.id);
-      setDonacionesPendientes(resDon.data.filter(d => d.estado === 'PENDIENTE'));
-      if (estado === 'COMPLETADA') {
-        const resInv = await inventarioService.listarPorBanco(banco.id);
-        setInventario(resInv.data);
-        const hoy = new Date();
-        const completadasMes = resDon.data.filter(d => {
-          if (d.estado !== 'COMPLETADA') return false;
-          const fecha = new Date(d.fechaDonacion);
-          return fecha.getMonth() === hoy.getMonth() &&
-                 fecha.getFullYear() === hoy.getFullYear();
-        });
-        setDonacionesMes(completadasMes.length);
-      }
+      await donacionService.cambiarEstado(donacionId, 'RECHAZADA');
+      await refrescarDatos();
     } catch (err) {
-      console.error('Error al cambiar estado:', err);
+      console.error('Error al rechazar:', err);
+      alert('No se pudo rechazar la donación');
+    }
+  };
+
+  // ── Abrir modal de completar ────────────────────────────────────────
+  const abrirModalCompletar = (donacion) => {
+    setDonacionActiva(donacion);
+    setFormCompletar(FORM_COMPLETAR_VACIO);
+    setErrorCompletar('');
+    setModalCompletar(true);
+  };
+
+  // ── Confirmar completar donación con datos clínicos ─────────────────
+  const confirmarCompletar = async () => {
+    setErrorCompletar('');
+
+    const unidades = Number(formCompletar.unidades);
+    if (!unidades || unidades < 1) {
+      setErrorCompletar('Ingresa al menos 1 unidad donada');
+      return;
+    }
+
+    // El backend acepta entre 200 y 550 ml por donación
+    // Convertimos unidades -> ml (1 unidad = 450 ml estándar)
+    const cantidadMl = unidades * 450;
+    if (cantidadMl < 200 || cantidadMl > 550) {
+      setErrorCompletar('Por donación se permite 1 unidad (450 ml). Ajusta el valor.');
+      return;
+    }
+
+    const hemoglobina = formCompletar.hemoglobina
+      ? parseFloat(formCompletar.hemoglobina)
+      : null;
+    if (hemoglobina !== null && (hemoglobina < 7 || hemoglobina > 25)) {
+      setErrorCompletar('La hemoglobina debe estar entre 7.0 y 25.0 g/dL');
+      return;
+    }
+
+    setGuardandoCompletar(true);
+
+    try {
+      // 1. Actualizar donación con datos clínicos (PUT completo con todos los campos)
+      const payloadPut = {
+        usuarioId: donacionActiva.usuarioId,
+        bancoId: donacionActiva.bancoId,
+        solicitudId: donacionActiva.solicitudId || null,
+        fechaDonacion: donacionActiva.fechaDonacion,
+        tipoSangre: donacionActiva.tipoSangre,
+        cantidadMl: cantidadMl,
+        hemoglobina: hemoglobina,
+        presionArterial: formCompletar.presionArterial || null,
+        observaciones: formCompletar.observaciones || null,
+        estado: 'PENDIENTE', // mantenemos pendiente aquí; el estado real lo cambiamos abajo
+      };
+
+      await donacionService.actualizar(donacionActiva.id, payloadPut);
+
+      // 2. Cambiar estado a COMPLETADA (esto dispara update de inventario en el backend)
+      await donacionService.cambiarEstado(donacionActiva.id, 'COMPLETADA');
+
+      await refrescarDatos();
+      setModalCompletar(false);
+    } catch (err) {
+      console.error('Error al completar:', err);
+      const msg = err.response?.data?.mensaje ||
+                  err.response?.data?.error ||
+                  err.response?.data?.errores?.[Object.keys(err.response?.data?.errores || {})[0]] ||
+                  'Error al completar la donación';
+      setErrorCompletar(msg);
+    } finally {
+      setGuardandoCompletar(false);
     }
   };
 
@@ -191,13 +284,13 @@ export default function HomeBanco() {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => cambiarEstadoDonacion(d.id, 'COMPLETADA')}
+                    onClick={() => abrirModalCompletar(d)}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[rgba(67,233,123,0.1)] border border-[#43e97b]/30 text-[#43e97b] hover:bg-[rgba(67,233,123,0.2)] transition-all"
                   >
                     ✅ Completar
                   </button>
                   <button
-                    onClick={() => cambiarEstadoDonacion(d.id, 'RECHAZADA')}
+                    onClick={() => rechazarDonacion(d.id)}
                     className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#08080f] border border-[#1e1e2e] text-[#52526a] hover:border-[#dc2626]/50 transition-all"
                   >
                     ✕ Rechazar
@@ -302,6 +395,140 @@ export default function HomeBanco() {
         )}
       </div>
 
+      {/* ═════════════════════════════════════════════════════════════ */}
+      {/* MODAL: COMPLETAR DONACIÓN CON DATOS CLÍNICOS                   */}
+      {/* ═════════════════════════════════════════════════════════════ */}
+      {modalCompletar && donacionActiva && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#111118] border border-[#1e1e2e] rounded-2xl max-w-lg w-full my-8">
+            <div className="p-6 border-b border-[#1e1e2e] flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-extrabold text-[#e8e8f0]"
+                    style={{ fontFamily: "'Syne', sans-serif" }}>
+                  ✅ Completar donación
+                </h2>
+                <p className="text-xs text-[#52526a] mt-1">
+                  {donacionActiva.usuarioNombre} {donacionActiva.usuarioApellido} · {donacionActiva.tipoSangre}
+                </p>
+              </div>
+              <button
+                onClick={() => setModalCompletar(false)}
+                className="text-[#52526a] hover:text-[#e8e8f0] text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {errorCompletar && (
+                <div className="px-4 py-3 rounded-lg text-sm bg-[rgba(255,77,109,0.08)] border border-[rgba(255,77,109,0.25)] text-[#ff4d6d]">
+                  ⚠️ {errorCompletar}
+                </div>
+              )}
+
+              {/* Info del donante */}
+              <div className="bg-[#08080f] border border-[#1e1e2e] rounded-xl p-4">
+                <p className="text-[0.68rem] font-bold uppercase tracking-wider text-[#52526a] mb-2"
+                   style={{ fontFamily: "'Syne', sans-serif" }}>
+                  Datos de la cita
+                </p>
+                <p className="text-sm text-[#e8e8f0]">
+                  🩸 <strong>{donacionActiva.tipoSangre}</strong> · 📅 {new Date(donacionActiva.fechaDonacion + 'T12:00:00').toLocaleDateString('es-CO', {
+                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+                  })}
+                </p>
+              </div>
+
+              {/* Unidades donadas */}
+              <div>
+                <label className="block text-[0.68rem] font-bold uppercase tracking-[1px] text-[#52526a] mb-1.5"
+                       style={{ fontFamily: "'Syne', sans-serif" }}>
+                  Unidades donadas *
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="1"
+                  step="1"
+                  value={formCompletar.unidades}
+                  onChange={(e) => setFormCompletar({...formCompletar, unidades: e.target.value})}
+                  className="w-full px-3 py-2.5 bg-[#08080f] border border-[#1e1e2e] rounded-lg text-[#e8e8f0] text-sm outline-none focus:border-[#43e97b]"
+                />
+                <p className="text-[0.7rem] text-[#52526a] mt-1">
+                  Estándar: 1 unidad = 450 ml. Por regulación se permite 1 unidad por donación.
+                </p>
+              </div>
+
+              {/* Hemoglobina */}
+              <div>
+                <label className="block text-[0.68rem] font-bold uppercase tracking-[1px] text-[#52526a] mb-1.5"
+                       style={{ fontFamily: "'Syne', sans-serif" }}>
+                  Hemoglobina (g/dL) — opcional
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="7"
+                  max="25"
+                  value={formCompletar.hemoglobina}
+                  onChange={(e) => setFormCompletar({...formCompletar, hemoglobina: e.target.value})}
+                  placeholder="Ej: 14.5"
+                  className="w-full px-3 py-2.5 bg-[#08080f] border border-[#1e1e2e] rounded-lg text-[#e8e8f0] text-sm outline-none focus:border-[#43e97b] placeholder:text-[#2a2a3e]"
+                />
+              </div>
+
+              {/* Presión arterial */}
+              <div>
+                <label className="block text-[0.68rem] font-bold uppercase tracking-[1px] text-[#52526a] mb-1.5"
+                       style={{ fontFamily: "'Syne', sans-serif" }}>
+                  Presión arterial — opcional
+                </label>
+                <input
+                  type="text"
+                  value={formCompletar.presionArterial}
+                  onChange={(e) => setFormCompletar({...formCompletar, presionArterial: e.target.value})}
+                  placeholder="Ej: 120/80"
+                  className="w-full px-3 py-2.5 bg-[#08080f] border border-[#1e1e2e] rounded-lg text-[#e8e8f0] text-sm outline-none focus:border-[#43e97b] placeholder:text-[#2a2a3e]"
+                />
+              </div>
+
+              {/* Observaciones */}
+              <div>
+                <label className="block text-[0.68rem] font-bold uppercase tracking-[1px] text-[#52526a] mb-1.5"
+                       style={{ fontFamily: "'Syne', sans-serif" }}>
+                  Observaciones — opcional
+                </label>
+                <textarea
+                  rows="3"
+                  value={formCompletar.observaciones}
+                  onChange={(e) => setFormCompletar({...formCompletar, observaciones: e.target.value})}
+                  placeholder="Notas del proceso, incidencias, etc."
+                  className="w-full px-3 py-2.5 bg-[#08080f] border border-[#1e1e2e] rounded-lg text-[#e8e8f0] text-sm outline-none focus:border-[#43e97b] placeholder:text-[#2a2a3e] resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-[#1e1e2e] flex justify-end gap-3">
+              <button
+                onClick={() => setModalCompletar(false)}
+                disabled={guardandoCompletar}
+                className="px-5 py-2.5 rounded-lg text-sm font-bold bg-[#08080f] border border-[#1e1e2e] text-[#52526a] hover:text-[#e8e8f0] transition-all disabled:opacity-40"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarCompletar}
+                disabled={guardandoCompletar}
+                className="px-5 py-2.5 rounded-lg text-sm font-extrabold text-white bg-gradient-to-r from-[#43e97b] to-[#22c55e] shadow-lg shadow-[#43e97b]/30 hover:shadow-xl transition-all disabled:opacity-40"
+                style={{ fontFamily: "'Syne', sans-serif" }}
+              >
+                {guardandoCompletar ? 'Guardando...' : '✅ CONFIRMAR DONACIÓN'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </Layout>
   );
-}
+} 

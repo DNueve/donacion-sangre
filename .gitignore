@@ -7,10 +7,16 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Node
 node_modules
 dist
 dist-ssr
 *.local
+
+# Env files (SECRETOS - NO subir)
+.env
+.env.local
+.env.*.local
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +28,22 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ═══════════════════════════════════════════════════
+# BACKEND SPRING BOOT
+# ═══════════════════════════════════════════════════
+
+# Compilados de Maven
+backend/target/
+target/
+*.class
+
+# Configuración con SECRETOS (NO subir nunca)
+backend/src/main/resources/application.properties
+
+# IntelliJ / Eclipse
+*.iml
+.settings/
+.project
+.classpath
+.factorypath

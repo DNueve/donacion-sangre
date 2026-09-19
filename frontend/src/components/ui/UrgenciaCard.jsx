@@ -47,11 +47,11 @@ export default function UrgenciaCard({ urgencia }) {
 
   // ── Llamar a Groq vía proxy backend ──────────────────────────────────────
   const llamarGroq = async (historial) => {
-const res = await fetch(`${import.meta.env.VITE_API_URL}/api/claude/chat`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/claude/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+       model: 'gemini-3.6-flash',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT(user?.nombre) },
           ...historial,
@@ -61,6 +61,13 @@ const res = await fetch(`${import.meta.env.VITE_API_URL}/api/claude/chat`, {
       }),
     });
     const data = await res.json();
+
+    // Si Groq devolvió error, lanzarlo con mensaje claro
+    if (!res.ok || !data.choices) {
+      console.error('Respuesta de Groq:', data);
+      throw new Error(data?.error?.message || data?.mensaje || `Error ${res.status} al llamar a Groq`);
+    }
+
     return data.choices[0].message.content;
   };
 
@@ -110,8 +117,10 @@ const res = await fetch(`${import.meta.env.VITE_API_URL}/api/claude/chat`, {
       ]);
     } catch (err) {
       console.error(err);
-      setPaso(PASO.FECHA);
-      setFecha(hoy);
+      // Si falla, mostramos un mensaje en el chat para que el usuario sepa qué pasó
+      setMensajes([
+        { rol: 'bot', texto: '⚠️ DonaBot no está disponible en este momento. Puedes usar el botón "SALTAR →" arriba para agendar directo.' },
+      ]);
     } finally {
       setEnviando(false);
     }
@@ -145,9 +154,19 @@ const res = await fetch(`${import.meta.env.VITE_API_URL}/api/claude/chat`, {
       }
     } catch (err) {
       console.error(err);
+      setMensajes(prev => [...prev, {
+        rol: 'bot',
+        texto: '⚠️ DonaBot no está disponible en este momento. Puedes usar el botón "SALTAR →" arriba para agendar directo.'
+      }]);
     } finally {
       setEnviando(false);
     }
+  };
+
+  // ── Saltar triaje ─────────────────────────────────────────────────────────
+  const saltarTriaje = () => {
+    setPaso(PASO.FECHA);
+    setFecha(hoy);
   };
 
   // ── Confirmar donación ────────────────────────────────────────────────────
@@ -255,11 +274,19 @@ const res = await fetch(`${import.meta.env.VITE_API_URL}/api/claude/chat`, {
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#dc2626] to-[#991b1b] flex items-center justify-center text-sm">
                     🤖
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm font-bold text-[#e8e8f0]">DonaBot</p>
                     <p className="text-xs text-[#52526a]">Triage virtual · powered by Groq</p>
                   </div>
-                  <button onClick={cerrar} className="ml-auto text-[#52526a] hover:text-[#e8e8f0]">✕</button>
+                  <button
+                    onClick={saltarTriaje}
+                    className="text-xs text-[#dc2626] hover:text-[#ff4d6d] font-bold whitespace-nowrap"
+                    style={{ fontFamily: "'Syne', sans-serif" }}
+                    title="Saltar el triaje virtual y agendar directo"
+                  >
+                    SALTAR →
+                  </button>
+                  <button onClick={cerrar} className="text-[#52526a] hover:text-[#e8e8f0] ml-2">✕</button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">

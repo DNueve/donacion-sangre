@@ -13,7 +13,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ClaudeController {
 
-    @Value("${groq.api.key}")
+    @Value("${gemini.api.key}")
     private String apiKey;
 
     private final RestTemplate restTemplate;
@@ -27,8 +27,9 @@ public class ClaudeController {
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
+        // Endpoint compatible con formato OpenAI de Gemini
         ResponseEntity<String> response = restTemplate.exchange(
-            "https://api.groq.com/openai/v1/chat/completions",
+            "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
             HttpMethod.POST,
             request,
             String.class
