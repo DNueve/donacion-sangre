@@ -156,4 +156,19 @@ export const matchingService = {
     api.get(`/api/matching/buscar?tipoSangre=${tipoSangre}&lat=${lat}&lon=${lon}&radioKm=${radioKm}`),
 };
 
+// ── Usuarios (SUPER_ADMIN) ──────────────────────────────────────────────────
+export const usuarioService = {
+  listarTodos: () =>
+    api.get('/api/usuarios'),
+
+  listarPorRol: (nombreRol) =>
+    api.get(`/api/usuarios/rol/${nombreRol}`),
+
+  obtenerPorId: (id) =>
+    api.get(`/api/usuarios/${id}`),
+
+  crearAdminBanco: (data) =>
+    api.post('/api/usuarios/admin-banco', data),
+};
+
 export default api;

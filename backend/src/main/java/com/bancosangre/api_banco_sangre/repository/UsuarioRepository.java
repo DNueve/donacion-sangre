@@ -37,4 +37,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     @Query("SELECT u FROM Usuario u JOIN u.rol r WHERE r.nombre = 'DONANTE' AND u.activo = true AND u.tipoSangre IN :tipos")
     List<Usuario> findDonantesActivosPorTiposSangre(@Param("tipos") List<String> tipos);
 
+        // ─── Consultas para SUPER_ADMIN ───────────────────────────────────
+    // Lista todos los usuarios que tengan el rol indicado por nombre
+    // Se usa para poblar el dropdown de admins de banco al crear/editar bancos
+    @Query("SELECT u FROM Usuario u JOIN u.rol r WHERE r.nombre = :nombreRol AND u.activo = true ORDER BY u.nombre ASC")
+    List<Usuario> findByRolNombre(@Param("nombreRol") String nombreRol);
 }

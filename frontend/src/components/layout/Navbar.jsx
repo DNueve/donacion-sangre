@@ -24,7 +24,27 @@ export default function Navbar() {
     { path: '/solicitudes', label: 'SOLICITUDES' },
   ];
 
-  const links = user?.rol === 'ADMIN_BANCO' ? linksBanco : linksDonante;
+  const linksSuperAdmin = [
+    { path: '/super-admin', label: 'INICIO' },
+    { path: '/super-admin/bancos', label: 'BANCOS' },
+    { path: '/super-admin/reporte-donaciones', label: 'REP. DONACIONES' },
+    { path: '/super-admin/reporte-inventario', label: 'REP. INVENTARIO' },
+  ];
+
+  const links =
+    user?.rol === 'SUPER_ADMIN' ? linksSuperAdmin :
+    user?.rol === 'ADMIN_BANCO' ? linksBanco :
+    linksDonante;
+
+  const homePath =
+    user?.rol === 'SUPER_ADMIN' ? '/super-admin' :
+    user?.rol === 'ADMIN_BANCO' ? '/home-banco' :
+    '/home-donante';
+
+  const roleLabel =
+    user?.rol === 'SUPER_ADMIN' ? 'Super Admin' :
+    user?.rol === 'ADMIN_BANCO' ? 'Admin Banco' :
+    `Donante ${user?.tipoSangre || ''}`;
 
   return (
     <nav className="bg-[#111118]/80 backdrop-blur-md border-b border-[#1e1e2e] sticky top-0 z-50">
@@ -32,7 +52,7 @@ export default function Navbar() {
         
         {/* Logo */}
         <div className="flex items-center gap-2 cursor-pointer" 
-             onClick={() => navigate(user?.rol === 'ADMIN_BANCO' ? '/home-banco' : '/home-donante')}>
+             onClick={() => navigate(homePath)}>
           <span className="text-2xl">🩸</span>
           <h1 className="text-xl font-extrabold text-[#e8e8f0]" 
               style={{ fontFamily: "'Syne', sans-serif" }}>
@@ -41,7 +61,7 @@ export default function Navbar() {
         </div>
 
         {/* Links centro */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-6">
           {links.map(link => (
             <a 
               key={link.path}
@@ -65,7 +85,7 @@ export default function Navbar() {
               {user?.nombre} {user?.apellido}
             </p>
             <p className="text-xs text-[#52526a]">
-              {user?.rol === 'ADMIN_BANCO' ? 'Admin Banco' : `Donante ${user?.tipoSangre || ''}`}
+              {roleLabel}
             </p>
           </div>
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#dc2626] to-[#991b1b] flex items-center justify-center font-bold text-white">

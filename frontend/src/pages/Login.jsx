@@ -39,6 +39,7 @@ export default function Login() {
 
       if (usuario.rol === 'DONANTE') navigate('/home-donante');
       else if (usuario.rol === 'ADMIN_BANCO') navigate('/home-banco');
+      else if (usuario.rol === 'SUPER_ADMIN') navigate('/super-admin');   // ← NUEVA
       else navigate('/');
     } catch (err) {
       const mensajeError =
@@ -56,19 +57,19 @@ export default function Login() {
       {/* Importar fuentes */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link 
-        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap" 
-        rel="stylesheet" 
+      <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap"
+        rel="stylesheet"
       />
 
-      <div className="min-h-screen flex items-center justify-center p-4 bg-[#08080f] overflow-hidden relative" 
-           style={{
-             backgroundImage: `
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#08080f] overflow-hidden relative"
+        style={{
+          backgroundImage: `
                radial-gradient(ellipse at 20% 20%, rgba(220, 38, 38, 0.18) 0, transparent 55%),
                radial-gradient(ellipse at 80% 80%, rgba(255, 90, 110, 0.12) 0, transparent 55%)
              `,
-             fontFamily: "'DM Sans', sans-serif"
-           }}>
+          fontFamily: "'DM Sans', sans-serif"
+        }}>
 
         {/* Container principal */}
         <div className="relative w-full max-w-[860px] h-auto md:h-[540px] bg-[#111118] border border-[#1e1e2e] rounded-3xl overflow-hidden shadow-2xl shadow-black/50 flex flex-col md:flex-row">
@@ -77,9 +78,9 @@ export default function Login() {
           {/* PANEL IZQUIERDO - Formulario             */}
           {/* ═══════════════════════════════════════════ */}
           <div className="w-full md:w-1/2 p-9 md:p-11 flex flex-col justify-center">
-            
+
             <h2 className="text-2xl font-extrabold text-[#e8e8f0] tracking-tight mb-1.5"
-                style={{ fontFamily: "'Syne', sans-serif" }}>
+              style={{ fontFamily: "'Syne', sans-serif" }}>
               Iniciar Sesión
             </h2>
             <p className="text-sm text-[#52526a] mb-5">
@@ -99,16 +100,16 @@ export default function Login() {
             )}
 
             <form onSubmit={handleSubmit} className="w-full">
-              
+
               {/* Campo Correo con validación en vivo */}
               <div className="w-full mb-3">
                 <label className="block text-[0.68rem] font-bold uppercase tracking-[1px] text-[#52526a] mb-1.5"
-                       style={{ fontFamily: "'Syne', sans-serif" }}>
+                  style={{ fontFamily: "'Syne', sans-serif" }}>
                   Correo
                 </label>
                 <div className="relative">
-                  <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#52526a] pointer-events-none" 
-                       width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#52526a] pointer-events-none"
+                    width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                     <polyline points="22,6 12,13 2,6" />
                   </svg>
@@ -119,13 +120,12 @@ export default function Login() {
                     placeholder="tucorreo@ejemplo.com"
                     autoComplete="email"
                     disabled={loading}
-                    className={`w-full pl-10 pr-3 py-2.5 bg-[#08080f] border rounded-[9px] text-[#e8e8f0] text-sm outline-none focus:ring-2 transition-all placeholder:text-[#2a2a3e] ${
-                      correo.length > 0 && !correoValido
+                    className={`w-full pl-10 pr-3 py-2.5 bg-[#08080f] border rounded-[9px] text-[#e8e8f0] text-sm outline-none focus:ring-2 transition-all placeholder:text-[#2a2a3e] ${correo.length > 0 && !correoValido
                         ? 'border-[#ff4d6d] focus:border-[#ff4d6d] focus:ring-[#ff4d6d]/20'
                         : correo.length > 0 && correoValido
-                        ? 'border-[#43e97b] focus:border-[#43e97b] focus:ring-[#43e97b]/20'
-                        : 'border-[#1e1e2e] focus:border-[#dc2626] focus:ring-[#dc2626]/20'
-                    }`}
+                          ? 'border-[#43e97b] focus:border-[#43e97b] focus:ring-[#43e97b]/20'
+                          : 'border-[#1e1e2e] focus:border-[#dc2626] focus:ring-[#dc2626]/20'
+                      }`}
                   />
                 </div>
                 {correo.length > 0 && !correoValido && (
@@ -143,12 +143,12 @@ export default function Login() {
               {/* Campo Contraseña */}
               <div className="w-full mb-3">
                 <label className="block text-[0.68rem] font-bold uppercase tracking-[1px] text-[#52526a] mb-1.5"
-                       style={{ fontFamily: "'Syne', sans-serif" }}>
+                  style={{ fontFamily: "'Syne', sans-serif" }}>
                   Contraseña
                 </label>
                 <div className="relative">
-                  <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#52526a] pointer-events-none" 
-                       width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#52526a] pointer-events-none"
+                    width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="3" y="11" width="18" height="11" rx="2" />
                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
@@ -224,19 +224,19 @@ export default function Login() {
           {/* PANEL DERECHO - Hero                       */}
           {/* ═══════════════════════════════════════════ */}
           <div className="w-full md:w-1/2 relative flex flex-col items-center justify-center p-12 text-center text-white overflow-hidden"
-               style={{
-                 background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 50%, #7f1d1d 100%)'
-               }}>
-            
+            style={{
+              background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 50%, #7f1d1d 100%)'
+            }}>
+
             {/* Grid decorativo de fondo */}
             <div className="absolute inset-0 opacity-100"
-                 style={{
-                   backgroundImage: `
+              style={{
+                backgroundImage: `
                      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
                      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
                    `,
-                   backgroundSize: '30px 30px'
-                 }}>
+                backgroundSize: '30px 30px'
+              }}>
             </div>
 
             {/* Círculos decorativos */}
@@ -250,15 +250,15 @@ export default function Login() {
               </div>
 
               <h3 className="text-2xl font-extrabold mb-3"
-                  style={{ fontFamily: "'Syne', sans-serif" }}>
+                style={{ fontFamily: "'Syne', sans-serif" }}>
                 ¿Primera vez aquí?
               </h3>
-              
+
               <p className="text-sm text-white/75 leading-relaxed mb-7 max-w-[280px]">
                 Únete a la comunidad de donantes y ayuda a salvar vidas con cada donación.
               </p>
 
-              <a 
+              <a
                 href="/registro"
                 className="inline-block bg-transparent border-2 border-white/80 text-white px-8 py-2.5 rounded-3xl text-[0.82rem] font-bold tracking-[0.8px] cursor-pointer transition-all hover:bg-white/15 hover:border-white no-underline"
                 style={{ fontFamily: "'Syne', sans-serif" }}

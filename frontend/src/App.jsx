@@ -8,6 +8,10 @@ import Urgencias from './pages/Urgencias';
 import MapaBancos from './pages/MapaBancos';
 import InventarioBanco from './pages/InventarioBanco';
 import SolicitudesBanco from './pages/SolicitudesBanco';
+import HomeSuperAdmin from './pages/HomeSuperAdmin';
+import GestionBancos from './pages/GestionBancos';
+import ReporteDonaciones from './pages/ReporteDonaciones';
+import ReporteInventario from './pages/ReporteInventario';
 
 function RutaProtegida({ children, rol }) {
   const { user, cargando } = useAuth();
@@ -28,12 +32,14 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
 
+          {/* ── DONANTE ─────────────────────────────────── */}
           <Route path="/home-donante" element={
             <RutaProtegida rol="DONANTE">
               <HomeDonante />
             </RutaProtegida>
           } />
 
+          {/* ── ADMIN BANCO ─────────────────────────────── */}
           <Route path="/home-banco" element={
             <RutaProtegida rol="ADMIN_BANCO">
               <HomeBanco />
@@ -52,6 +58,32 @@ function App() {
             </RutaProtegida>
           } />
 
+          {/* ── SUPER ADMIN ─────────────────────────────── */}
+          <Route path="/super-admin" element={
+            <RutaProtegida rol="SUPER_ADMIN">
+              <HomeSuperAdmin />
+            </RutaProtegida>
+          } />
+
+          <Route path="/super-admin/bancos" element={
+            <RutaProtegida rol="SUPER_ADMIN">
+              <GestionBancos />
+            </RutaProtegida>
+          } />
+
+          <Route path="/super-admin/reporte-donaciones" element={
+            <RutaProtegida rol="SUPER_ADMIN">
+              <ReporteDonaciones />
+            </RutaProtegida>
+          } />
+
+          <Route path="/super-admin/reporte-inventario" element={
+            <RutaProtegida rol="SUPER_ADMIN">
+              <ReporteInventario />
+            </RutaProtegida>
+          } />
+
+          {/* ── COMPARTIDAS ─────────────────────────────── */}
           <Route path="/urgencias" element={
             <RutaProtegida>
               <Urgencias />
